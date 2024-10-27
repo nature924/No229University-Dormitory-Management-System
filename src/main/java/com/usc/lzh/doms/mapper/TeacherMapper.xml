@@ -1,0 +1,324 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.usc.lzh.doms.mapper.TeacherMapper">
+    <select id="findAllocationInfoListByPage" parameterType="com.usc.lzh.doms.vo.AllocationInfoVo"
+            resultType="AllocationInfo">
+        select brcode,stucollege,studept,stuclass,stuname,si.stuid,bed
+        from allocationinfo ai join studentinfo si
+        on ai.stuid = si.stuid
+        <trim prefix="where" prefixOverrides="and">
+            <if test="studept != null and studept != ''">
+                and studept like concat('%',#{studept},'%')
+            </if>
+            <if test="stugrade != null and stugrade != ''">
+                and si.stuid like concat(#{stugrade},'%')
+            </if>
+            <if test="stuclass != null and stuclass != ''">
+                and stuclass like concat('%',#{stuclass},'%')
+            </if>
+        </trim>
+        order by stucollege,studept,si.stuid
+    </select>
+
+    <!--(brcode,brarea,brbid,stuname,stuid,stucollege,studept,bed,ststus)-->
+    <insert id="addAllocationInfo" parameterType="AllocationInfo">
+        insert into allocationinfo
+        values (#{brcode},#{stuid},#{bed},1)
+    </insert>
+
+    <update id="updateAllocationInfo" parameterType="AllocationInfo">
+        update allocationinfo
+        <set>
+            <if test="brcode != null and brcode != ''">
+                brcode=#{brcode},
+            </if>
+            <if test="bed != null and bed != ''">
+                bed=#{bed}
+            </if>
+        </set>
+        where stuid = #{stuid}
+    </update>
+
+    <delete id="deleteAllocationInfo" parameterType="java.lang.String">
+        delete from allocationinfo
+        where stuid = #{stuid}
+    </delete>
+
+    <select id="exportByDept" parameterType="java.lang.String" resultType="AllocationInfo">
+        select stucollege,studept,stuclass,stuname,si.stuid,brcode,bed
+        from allocationinfo ai join studentinfo si
+        on ai.stuid = si.stuid
+        <trim prefix="where" prefixOverrides="and">
+            <if test="studept != null and studept != ''">
+                and studept like concat('%',#{studept},'%')
+            </if>
+            <if test="grade != null and grade != ''">
+                and si.stuid like concat(#{grade},'%')
+            </if>
+        </trim>
+        order by stucollege,studept,stuclass,ai.stuid
+    </select>
+
+    <select id="findDeptByUid" parameterType="java.lang.String" resultType="java.lang.String">
+        select dept from users
+        where uid = #{uid}
+    </select>
+
+    <select id="findStudentInfoListByPage" parameterType="com.usc.lzh.doms.vo.StudentInfoVo" resultType="StudentInfo">
+        select stuid,stuname,stusex,stucollege,studept,stuclass,stutel
+        from studentinfo
+        <trim prefix="where" prefixOverrides="and">
+            <if test="studept != null and studept != ''">
+                and studept like concat('%',#{studept},'%')
+            </if>
+            <if test="stuid != null and stuid != ''">
+                and stuid like concat(#{stuid},'%')
+            </if>
+            <if test="stuname != null and stuname != ''">
+                and stuname like concat('%',#{stuname},'%')
+            </if>
+            <if test="stuclass != null and stuclass != ''">
+                and stuclass like concat('%',#{stuclass},'%')
+            </if>
+        </trim>
+        order by stucollege,studept,stuid
+    </select>
+
+    <insert id="addStudentInfo" parameterType="StudentInfo">
+        insert into studentinfo(stuid,stuname,stucollege,studept,stuclass,stugrade)
+        values (#{stuid},#{stuname},#{stucollege},#{studept},#{stuclass},#{stugrade})
+    </insert>
+
+    <update id="updateStudentInfo" parameterType="StudentInfo">
+        update studentinfo
+        <set>
+            <if test="stucollege != null and stucollege != ''">
+                stucollege=#{stucollege},
+            </if>
+            <if test="studept != null and studept != ''">
+                studept=#{studept},
+            </if>
+            <if test="stuclass != null and stuclass != ''">
+                stuclass=#{stuclass},
+            </if>
+            <if test="stuname != null and stuname != ''">
+                stuname=#{stuname}
+            </if>
+        </set>
+        where stuid = #{stuid}
+    </update>
+
+    <delete id="deleteStudentInfo" parameterType="java.lang.String">
+        delete from studentinfo
+        where stuid = #{stuid}
+    </delete>
+
+    <!-- 批量插入学生信息 -->
+    <insert id="batchInsert" parameterType="java.util.List">
+        insert into
+        studentinfo(stuid,stuname,stusex,stucollege,studept,stugrade,stuclass,stutel,stuqq,stuwx,stututorname,stututortel,stuaddress)
+        values
+        <foreach collection="list" item="si" index="index" separator=",">
+            (#{si.stuid},#{si.stuname},#{si.stusex},#{si.stucollege},#{si.studept},#{si.stugrade},#{si.stuclass},#{si.stutel},#{si.stuqq},#{si.stuwx},#{si.stututorname},#{si.stututortel},#{si.stuaddress})
+        </foreach>
+    </insert>
+
+    <select id="findCleanInfoListByPage" parameterType="com.usc.lzh.doms.vo.CleanInfoVo"
+            resultType="com.usc.lzh.doms.vo.CleanInfoVo">
+        select DISTINCT si.stucollege,si.studept,si.stuclass,bi.brarea,bi.brbid,bi.brrid,ci.content,ci.grade,ci.time
+        from cleaninfo ci join allocationinfo ai on ci.brcode = ai.brcode
+        join studentinfo si on si.stuid = ai.stuid
+        join buildroominfo bi on bi.brcode = ci.brcode
+        <trim prefix="where" prefixOverrides="and">
+            <if test="studept != null and studept != ''">
+                and si.studept like concat('%',#{studept},'%')
+            </if>
+            <if test="stuid != null and stuid != ''">
+                and si.stuid like concat(#{stuid},'%')
+            </if>
+            <if test="grade == 1">
+                and ci.grade &lt; 60
+            </if>
+            <if test="grade == 2">
+                and ci.grade &gt;= 60 and ci.grade &lt; 70
+            </if>
+            <if test="grade == 3">
+                and ci.grade &gt;= 70 and ci.grade &lt; 80
+            </if>
+            <if test="grade == 4">
+                and ci.grade &gt;= 80 and ci.grade &lt; 90
+            </if>
+            <if test="grade == 5">
+                and ci.grade &gt;= 90
+            </if>
+        </trim>
+        order by ci.time desc,si.stucollege,si.studept,si.stuclass
+    </select>
+
+
+    <select id="findLeaveInfoListByPage" parameterType="com.usc.lzh.doms.vo.LeaveInfoVo" resultType="LeaveInfo">
+        select li.*,stuname,stutel,studept,stuclass from leaveinfo li
+        join studentinfo si
+        on li.stuid = si.stuid
+        <trim prefix="where" prefixOverrides="and">
+            <if test="studept != null and studept != ''">
+                and studept like concat("%",#{studept},"%")
+            </if>
+            <if test="stugrade != null and stugrade != ''">
+                and stugrade = #{stugrade}
+            </if>
+            <if test="got != null and got != 3">
+                and got = #{got}
+            </if>
+        </trim>
+        order by studept,stuclass,li.stuid
+    </select>
+
+    <delete id="batchDeleteLeaveInfo" parameterType="java.util.List">
+        delete from leaveinfo
+        where id in
+        <foreach collection="list" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="exportLeaveInfo" parameterType="java.lang.String" resultType="LeaveInfo">
+        select li.*,stuname,stutel,stucollege,studept,stuclass from leaveinfo li
+        join studentinfo si
+        on li.stuid = si.stuid
+        <trim prefix="where" prefixOverrides="and">
+            <if test="studept != null and studept != ''">
+                and studept like concat("%",#{studept},"%")
+            </if>
+            <if test="stugrade != null and stugrade != ''">
+                and stugrade = #{stugrade}
+            </if>
+        </trim>
+        order by stucollege,studept,stuclass,li.stuid
+    </select>
+
+    <select id="getLeaveGotCount" resultType="java.lang.Integer">
+        select count(*) from leaveinfo li
+        join studentinfo si
+        on li.stuid = si.stuid
+        <trim prefix="where" prefixOverrides="and">
+            <if test="studept != null and studept != ''">
+                and studept like concat("%",#{studept},"%")
+            </if>
+            <if test="stugrade != null and stugrade != ''">
+                and stugrade = #{stugrade}
+            </if>
+            <if test="got != null">
+                and got = #{got}
+            </if>
+        </trim>
+    </select>
+
+    <select id="findStayInfoListByPage" parameterType="com.usc.lzh.doms.vo.StayInfoVo" resultType="StayInfo">
+        select st.*,ai.brcode,si.stucollege,si.studept,si.stuclass,si.stuname,si.stutel,si.stututortel
+        from stayinfo st
+        join studentinfo si on st.stuid = si.stuid
+        join allocationinfo ai on ai.stuid = st.stuid
+        <trim prefix="where" prefixOverrides="and">
+            <if test="studept != null and studept != ''">
+                and si.studept = #{studept}
+            </if>
+            <if test="stugrade != null and stugrade != ''">
+                and si.stugrade = #{stugrade}
+            </if>
+        </trim>
+        order by id
+    </select>
+
+    <update id="approveStayInfo" parameterType="StayInfo">
+        update stayinfo
+        <trim prefix="set" suffixOverrides=",">
+            <if test="approvetype != null">
+                approvetype = #{approvetype},
+            </if>
+            <if test="approvetext != null">
+                approvetext = #{approvetext},
+            </if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <select id="exportStayInfo" parameterType="java.lang.String" resultType="StayInfo">
+        select
+        st.stuid,st.reason,st.time,bi.brarea,bi.brbid,bi.brrid,si.stucollege,si.studept,si.stuclass,si.stuname,si.stutel,si.stututortel,si.stututorname
+        from stayinfo st
+        join studentinfo si on st.stuid = si.stuid
+        join allocationinfo ai on ai.stuid = st.stuid
+        join buildroominfo bi on bi.brcode = ai.brcode
+        <trim prefix="where" prefixOverrides="and">
+            <if test="studept != null and studept != ''">
+                and si.studept = #{studept}
+            </if>
+            <if test="stugrade != null and stugrade != ''">
+                and si.stugrade = #{stugrade}
+            </if>
+        </trim>
+        order by st.stuid
+    </select>
+
+    <select id="getStayInfoOnWhere" resultType="java.lang.String">
+        select DISTINCT brarea from buildroominfo bi
+        join allocationinfo ai on ai.brcode = bi.brcode
+        join stayinfo st on st.stuid = ai.stuid
+    </select>
+
+    <select id="getStayInfoOnBrareaCount" resultType="java.lang.Integer" parameterType="java.lang.String">
+        select count(*) from stayinfo st
+        join allocationinfo ai on st.stuid = ai.stuid
+        join buildroominfo bi on ai.brcode = bi.brcode
+        join studentinfo si on st.stuid = si.stuid
+        <trim prefix="where" prefixOverrides="and">
+            <if test="brarea != null and brarea != ''">
+                and brarea = #{brarea}
+            </if>
+            <if test="studept != null and studept != ''">
+                and si.studept = #{studept}
+            </if>
+            <if test="stugrade != null and stugrade != ''">
+                and si.stugrade = #{stugrade}
+            </if>
+        </trim>
+    </select>
+
+    <select id="findBackToScInfoListByPage" parameterType="com.usc.lzh.doms.vo.BackToScInfoVo"
+            resultType="BackToScInfo">
+        select bs.*,si.stuname,si.stucollege,si.studept,si.stuclass,si.stutel
+        from backtoscinfo bs
+        join studentinfo si
+        on bs.stuid = si.stuid
+        <trim prefix="where" prefixOverrides="and">
+            <if test="studept != null and studept != ''">
+                and si.studept = #{studept}
+            </if>
+            <if test="stugrade != null and stugrade != ''">
+                and si.stugrade = #{stugrade}
+            </if>
+            <if test="delay != null and delay != ''">
+                and bs.delay = #{delay}
+            </if>
+        </trim>
+        order by si.stucollege,si.studept,bs.stuid
+    </select>
+
+    <select id="getDelayOrNotCount" parameterType="java.lang.String" resultType="java.lang.Integer">
+        select count(*) from backtoscinfo bs
+        join studentinfo si
+        on bs.stuid = si.stuid
+        <trim prefix="where" prefixOverrides="and">
+            <if test="studept != null and studept != ''">
+                and si.studept = #{studept}
+            </if>
+            <if test="stugrade != null and stugrade != ''">
+                and si.stugrade = #{stugrade}
+            </if>
+            <if test="delay != null and delay != ''">
+                and bs.delay = #{delay}
+            </if>
+        </trim>
+    </select>
+</mapper>

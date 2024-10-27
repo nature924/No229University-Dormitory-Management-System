@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.usc.lzh.doms.mapper.StudentMapper">
+    <select id="findMyCleanInfoListByPage" resultType="CleanInfo" parameterType="com.usc.lzh.doms.vo.CleanInfoVo">
+        select brarea,brbid,brrid,content,grade,time
+        from cleaninfo ci join
+        (select bi.brcode,bi.brarea,bi.brbid,bi.brrid
+        from buildroominfo bi join allocationinfo ai on ai.brcode = bi.brcode
+        where ai.stuid = #{stuid}) t
+        where ci.brcode = t.brcode
+        order by time desc
+    </select>
+
+    <select id="findMyRepairInfoListByPage" resultType="RepairInfo" parameterType="com.usc.lzh.doms.vo.RepairInfoVo">
+        select ri.id,si.stuname,ri.stuid,ri.stutel,ri.type,ri.content,ri.status,ri.subtime
+        from repairinfo ri join studentinfo si
+        on si.stuid = ri.stuid
+        where ri.brcode = (select brcode from allocationinfo where stuid = #{stuid})
+        order by ri.id desc
+    </select>
+
+    <insert id="addRepairInfo" parameterType="RepairInfo">
+        insert into repairinfo(brcode,stuid,stutel,type,content,subtime)
+        select brcode,#{stuid},#{stutel},#{type},#{content},#{subtime}
+        from allocationinfo ai
+        where ai.stuid = #{stuid}
+    </insert>
+
+    <update id="updateRepairInfo" parameterType="RepairInfo">
+        update repairinfo
+        <trim prefix="set" suffixOverrides=",">
+            <if test="stutel != null and stutel != ''">
+                stutel = #{stutel},
+            </if>
+            <if test="type != null and type != ''">
+                type = #{type},
+            </if>
+            <if test="content != null and content != ''">
+                content = #{content}
+            </if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <select id="findStudentInfoByStuid" parameterType="java.lang.String" resultType="StudentInfo">
+        select * from studentinfo
+        where stuid = #{stuid}
+    </select>
+
+    <update id="updateStudentInfo" parameterType="StudentInfo">
+        update studentinfo
+        <trim prefix="set" suffixOverrides=",">
+            <if test="stutel != null">
+                stutel = #{stutel},
+            </if>
+            <if test="stuqq != null">
+                stuqq = #{stuqq},
+            </if>
+            <if test="stuwx != null">
+                stuwx = #{stuwx},
+            </if>
+            <if test="stututorname != null">
+                stututorname = #{stututorname},
+            </if>
+            <if test="stututortel != null">
+                stututortel = #{stututortel},
+            </if>
+            <if test="stuaddress != null">
+                stuaddress = #{stuaddress}
+            </if>
+        </trim>
+        where stuid = #{stuid}
+    </update>
+
+
+    <select id="findBrcodeByStuid" parameterType="java.lang.String" resultType="java.lang.String">
+        select brcode from allocationinfo
+        where stuid = #{uid}
+    </select>
+
+    <select id="findMessageListByPage" resultType="MessageBoard">
+        select * from messageboard
+        <trim prefix="where" prefixOverrides="and | or">
+            <if test="type != null and type != 3">
+                and type = #{type}
+            </if>
+            <if test="brcode != null and brcode != ''">
+                and (brcode like concat("%",#{brcode},"%")
+            </if>
+            <if test="brarea != null and brarea != ''">
+                or brcode like #{brarea})
+            </if>
+        </trim>
+        order by id desc
+        limit #{start},#{size}
+    </select>
+
+
+    <select id="findMessageCount" resultType="java.lang.Integer">
+        select count(*) from messageboard
+        <trim prefix="where" prefixOverrides="and | or">
+            <if test="type != null and type != 3">
+                and type = #{type}
+            </if>
+            <if test="brcode != null and brcode != ''">
+                and (brcode like concat("%",#{brcode},"%")
+            </if>
+            <if test="brarea != null and brarea != ''">
+                or brcode like #{brarea})
+            </if>
+        </trim>
+    </select>
+
+    <select id="findMyMessage" parameterType="com.usc.lzh.doms.vo.MessageBoardVo" resultType="MessageBoard">
+        select * from messageboard
+        where announcer like concat("%",#{announcer},"%")
+        order by id desc
+    </select>
+
+    <insert id="addMessage" parameterType="MessageBoard">
+        insert into messageboard(title,content,time,announcer,brcode,type)
+        values(#{title},#{content},#{time},#{announcer},#{brcode},#{type})
+    </insert>
+
+    <delete id="deleteMessage" parameterType="java.util.List">
+        delete from messageboard
+        where id in
+        <foreach collection="list" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="findMyLeaveInfoByPage" parameterType="com.usc.lzh.doms.vo.LeaveInfoVo" resultType="LeaveInfo">
+        select * from leaveinfo
+        <where>
+            <if test="stuid != null and stuid != ''">
+                stuid = #{stuid}
+            </if>
+        </where>
+        order by id desc
+    </select>
+
+    <insert id="addMyLeaveInfo" parameterType="LeaveInfo">
+        insert into leaveinfo(stuid,got,time,dest,ectel)
+        values (#{stuid},#{got},#{time},#{dest},#{ectel})
+    </insert>
+
+    <update id="updateMyLeaveInfo" parameterType="LeaveInfo">
+        update leaveinfo
+        <trim prefix="set" suffixOverrides=",">
+            <if test="got != null">
+                got = #{got},
+            </if>
+            <if test="time != null and time != ''">
+                time = #{time},
+            </if>
+            <if test="dest != null and dest != ''">
+                dest = #{dest},
+            </if>
+            <if test="ectel != null and ectel != ''">
+                ectel = #{ectel}
+            </if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <insert id="addMyStayInfo" parameterType="StayInfo">
+        insert into stayinfo(stuid,reason,time,opinion)
+        values (#{stuid},#{reason},#{time},#{opinion})
+    </insert>
+
+    <select id="findMyStayInfoListByPage" parameterType="com.usc.lzh.doms.vo.StayInfoVo" resultType="StayInfo">
+        select * from stayinfo
+        <where>
+            <if test="stuid != null and stuid != ''">
+                stuid = #{stuid}
+            </if>
+        </where>
+        order by id desc
+    </select>
+
+    <update id="updateMyStayInfo" parameterType="StayInfo">
+        update stayinfo
+        <trim prefix="set" suffixOverrides=",">
+            <if test="reason != null and reason != ''">
+                reason = #{reason},
+            </if>
+            <if test="time != null and time != ''">
+                time = #{time},
+            </if>
+            <if test="opinion != null and opinion != ''">
+                opinion = #{opinion}
+            </if>
+        </trim>
+        where id = #{id}
+    </update>
+
+
+    <select id="findMyBackInfoByPage" parameterType="com.usc.lzh.doms.vo.BackToScInfoVo" resultType="BackToScInfo">
+        select * from backtoscinfo
+        where stuid = #{stuid}
+        order by id desc
+    </select>
+
+    <insert id="addMyBackInfo" parameterType="BackToScInfo">
+        insert into backtoscinfo(stuid,delay,reason,time,way,trainnum)
+        values (#{stuid},#{delay},#{reason},#{time},#{way},#{trainnum})
+    </insert>
+
+    <update id="updateMyBackInfo" parameterType="BackToScInfo">
+        update backtoscinfo
+        <trim prefix="set" suffixOverrides=",">
+            <if test="delay != null and delay != ''">
+                delay = #{delay},
+            </if>
+            <if test="reason != null and reason != ''">
+                reason = #{reason},
+            </if>
+            <if test="time != null and time != ''">
+                time = #{time},
+            </if>
+            <if test="way != null and way != ''">
+                way = #{way},
+            </if>
+            <if test="trainnum != null and trainnum != ''">
+                trainnum = #{trainnum}
+            </if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <select id="findMyDormitoryInfoListByPage" parameterType="com.usc.lzh.doms.vo.AllocationInfoVo"
+            resultType="AllocationInfo">
+        select ai.brcode,bi.brarea,bi.brbid,bi.brrid,ai.bed,ai.stuid,si.stuname,si.stucollege,si.studept,si.stuclass,si.stutel
+        from allocationinfo ai join studentinfo si on ai.stuid = si.stuid
+        join buildroominfo bi on ai.brcode = bi.brcode
+        where ai.brcode = (select brcode from allocationinfo where stuid = #{stuid})
+    </select>
+
+    <select id="getAiStatus" parameterType="java.lang.String" resultType="java.lang.Integer">
+        select status from allocationinfo
+        where stuid = #{stuid}
+    </select>
+
+    <update id="chooseBed">
+        update allocationinfo
+        set bed = #{bed}, status = 1
+        where stuid = #{stuid}
+    </update>
+
+    <select id="findAlreadyChooseBeds" parameterType="java.lang.String" resultType="java.lang.Integer">
+        select bed from allocationinfo
+        where brcode = (select brcode from allocationinfo where stuid = #{stuid}) and bed is not NULL
+    </select>
+</mapper>

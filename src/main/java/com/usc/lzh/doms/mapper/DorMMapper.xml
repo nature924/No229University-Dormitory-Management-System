@@ -1,0 +1,346 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.usc.lzh.doms.mapper.DorMMapper">
+    <!-- 查找报修信息 brcode：宿管员负责的楼栋编号 status：报修状态 -->
+    <select id="findRepairInfoListByPage" parameterType="com.usc.lzh.doms.vo.RepairInfoVo" resultType="RepairInfo">
+        select ri.*,si.stuname from repairinfo ri
+        join studentinfo si
+        on ri.stuid = si.stuid
+        <where>
+            <if test="brcode != null">
+                brcode like concat('%',#{brcode},'%')
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <!-- 导出报修信息 brcode：宿管员负责的楼栋编号 status：报修状态 -->
+    <select id="exportRepairInfo" resultType="RepairInfo" parameterType="java.lang.String">
+        select ri.*,si.stuname from repairinfo ri
+        join studentinfo si
+        on ri.stuid = si.stuid
+        <where>
+            <if test="brcode != null">
+                brcode like concat('%',#{brcode},'%')
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <!-- 批量更改报修状态 status：报修状态 id：报修单编号 -->
+    <update id="batchEditRepairStatus">
+        <foreach collection="list" separator=";" index="index" item="item">
+            update repairinfo
+            <set>
+                status = #{status}
+            </set>
+            where id = #{item}
+        </foreach>
+    </update>
+
+    <!-- 查找卫生检查记录 brcode：宿管员负责的楼栋编号 -->
+    <select id="findCleanInfoListByPage" parameterType="com.usc.lzh.doms.vo.CleanInfoVo" resultType="CleanInfo">
+        select * from cleaninfo
+        <where>
+            <if test="brcode != null">
+                brcode like concat('%',#{brcode},'%')
+            </if>
+        </where>
+        order by time desc,brcode desc
+    </select>
+
+    <!-- 更改卫生检查记录 -->
+    <update id="updateCleanInfo" parameterType="CleanInfo">
+        update cleaninfo
+        <set>
+            <if test="brcode != null and brcode != ''">
+                brcode=#{brcode},
+            </if>
+            <if test="checker != null and checker != ''">
+                checker=#{checker},
+            </if>
+            <if test="content != null and content != ''">
+                content=#{content},
+            </if>
+            <if test="time != null and time != ''">
+                time=#{time},
+            </if>
+            <if test="grade != null and grade != ''">
+                grade=#{grade}
+            </if>
+        </set>
+        where id = #{id}
+    </update>
+
+    <!-- 删除卫生检查记录 -->
+    <delete id="deleteCleanInfo" parameterType="java.lang.Integer">
+        delete from cleaninfo
+        where id = #{id}
+    </delete>
+
+    <!-- 批量添加卫生检查记录 -->
+    <insert id="batchInsertCleanInfo" parameterType="java.util.List">
+        insert into cleaninfo(brcode,content,time,checker,grade)
+        values
+        <foreach collection="list" item="ci" index="index" separator=",">
+            (#{ci.brcode},#{ci.content},#{ci.time},#{ci.checker},#{ci.grade})
+        </foreach>
+    </insert>
+
+    <!-- 查找宿舍信息  people为1表示查找住满的宿舍，为-1表示查找未住满的宿舍，0表示全部都查 -->
+    <select id="findBuildRoomInfoListByPage" parameterType="com.usc.lzh.doms.vo.BuildRoomInfoVo"
+            resultType="BuildRoomInfo">
+        select * from buildroominfo
+        <trim prefix="where" prefixOverrides="and">
+            <if test="brcode != null">
+                and brcode like concat('%',#{brcode},'%')
+            </if>
+            <if test="people gt 0">
+                and people = volume
+            </if>
+            <if test="people lt 0">
+                and free != 0
+            </if>
+        </trim>
+        order by brcode asc
+    </select>
+
+    <!-- 更改宿舍信息 只能改宿舍性质、床位数和已入住人数 -->
+    <update id="updateBuildRoomInfo" parameterType="BuildRoomInfo">
+        update buildroominfo
+        <set>
+            <if test="sex != null and sex != ''">
+                sex = #{sex},
+            </if>
+            <if test="volume != null and volume >= 0">
+                volume = #{volume},
+            </if>
+            <if test="people != null and people >= 0">
+                people = #{people},
+            </if>
+            <if test="free != null and free >= 0">
+                free = #{free}
+            </if>
+        </set>
+        where brcode = #{brcode}
+    </update>
+
+    <!-- 删除宿舍信息 应该先删宿舍分配表里的-->
+    <delete id="deleteBuildRoomInfo" parameterType="java.lang.String">
+        delete from buildroominfo
+        where brcode = #{brcode}
+    </delete>
+
+    <!-- 添加宿舍信息（单个/批量） -->
+    <insert id="addBuildRoomInfo" parameterType="java.util.List">
+        insert into buildroominfo(brcode,brarea,brbid,brrid,volume,sex,free,people)
+        values
+        <foreach collection="list" item="bi" index="index" separator=",">
+            (#{bi.brcode},#{bi.brarea},#{bi.brbid},#{bi.brrid},#{bi.volume},#{bi.sex},#{bi.free},#{bi.people})
+        </foreach>
+    </insert>
+
+    <!-- 查找公告/失物招领信息 -->
+    <select id="findMessageListByPage" parameterType="com.usc.lzh.doms.vo.MessageBoardVo" resultType="MessageBoard">
+        select * from messageboard
+        <trim prefix="where" prefixOverrides="and">
+            <if test="type != null and type lt 2">
+                and type = #{type}
+            </if>
+            <if test="type == null or type == ''">
+                and type &lt; 2
+            </if>
+            <if test="brcode != null and brcode != ''">
+                and brcode like concat('%',#{brcode},'%')
+            </if>
+        </trim>
+        order by id desc
+    </select>
+
+    <!-- 添加公告/失物招领信息 -->
+    <insert id="addMessage" parameterType="MessageBoard">
+        insert into messageboard(title,content,time,announcer,brcode,type)
+        values(#{title},#{content},#{time},#{announcer},#{brcode},#{type})
+    </insert>
+
+    <!-- 修改公告/失物招领信息 -->
+    <update id="updateMessage" parameterType="MessageBoard">
+        update messageboard
+        <trim prefix="set" prefixOverrides=",">
+            <if test="brcode != null and brcode != ''">
+                brcode = #{brcode},
+            </if>
+            <if test="title != null and title != ''">
+                title = #{title},
+            </if>
+            <if test="content != null and content != ''">
+                content = #{content},
+            </if>
+            <if test="type != null and type != 3">
+                type = #{type}
+            </if>
+        </trim>
+        where id = #{id}
+    </update>
+
+    <delete id="deleteMessage" parameterType="java.util.List">
+        delete from messageboard
+        where id in
+        <foreach collection="list" item="id" open="(" close=")" separator=",">
+            #{id}
+        </foreach>
+    </delete>
+
+    <select id="findStayInfoListByPage" parameterType="com.usc.lzh.doms.vo.StayInfoVo" resultType="StayInfo">
+        select
+        st.stuid,st.reason,st.time,bi.brcode,bi.brarea,bi.brbid,bi.brrid,si.stucollege,si.studept,si.stuclass,si.stuname,si.stutel,si.stututortel
+        from stayinfo st
+        join studentinfo si on st.stuid = si.stuid
+        join allocationinfo ai on ai.stuid = st.stuid
+        join buildroominfo bi on bi.brcode = ai.brcode
+        <trim prefix="where" prefixOverrides="and">
+            <if test="approvetype != null">
+                and approvetype = #{approvetype}
+            </if>
+            <if test="brarea != null and brarea != ''">
+                and bi.brarea = #{brarea}
+            </if>
+            <if test="brbid != null and brbid != ''">
+                and bi.brbid = #{brbid}
+            </if>
+        </trim>
+        order by bi.brcode desc
+    </select>
+
+    <select id="getStayInfoBrareas" resultType="java.lang.String">
+        select DISTINCT brarea from buildroominfo bi
+        join allocationinfo ai on ai.brcode = bi.brcode
+        join stayinfo st on st.stuid = ai.stuid
+    </select>
+
+    <select id="getStayInfoOnBrareaCount" resultType="java.lang.Integer">
+        select count(*) from stayinfo st
+        join allocationinfo ai on st.stuid = ai.stuid
+        join buildroominfo bi on ai.brcode = bi.brcode
+        <trim prefix="where" prefixOverrides="and">
+            <if test="approvetype != null">
+                and approvetype = #{approvetype}
+            </if>
+            <if test="brarea != null and brarea != ''">
+                and bi.brarea = #{brarea}
+            </if>
+            <if test="brbid != null and brbid != ''">
+                and bi.brbid = #{brbid}
+            </if>
+        </trim>
+    </select>
+
+    <select id="findAllocationInfoListByPage" resultType="AllocationInfo"
+            parameterType="com.usc.lzh.doms.vo.AllocationInfoVo">
+        select ai.stuid,ai.brcode,ai.bed,bi.brarea,bi.brbid,bi.brrid,si.stucollege,si.studept,si.stuclass,si.stuname
+        from allocationinfo ai
+        join buildroominfo bi on bi.brcode = ai.brcode
+        join studentinfo si on si.stuid = ai.stuid
+        <trim prefix="where" prefixOverrides="and">
+            <if test="stucollege != null and stucollege != ''">
+                and si.stucollege like concat('%',#{stucollege},'%')
+            </if>
+            <if test="studept != null and studept != ''">
+                and si.studept like concat('%',#{studept},'%')
+            </if>
+            <if test="brarea != null and brarea != ''">
+                and bi.brarea like concat('%',#{brarea},'%')
+            </if>
+            <if test="brbid != null and brbid != ''">
+                and bi.brbid like concat('%',#{brbid},'%')
+            </if>
+        </trim>
+        group by bi.brarea,bi.brbid,bi.brrid,si.stucollege,si.studept,si.stuclass,ai.stuid
+    </select>
+
+
+    <select id="exportAllocationInfo" resultType="AllocationInfo"
+            parameterType="java.lang.String">
+        select ai.stuid,ai.brcode,ai.bed,bi.brarea,bi.brbid,bi.brrid,si.stucollege,si.studept,si.stuclass,si.stuname
+        from allocationinfo ai
+        join buildroominfo bi on bi.brcode = ai.brcode
+        join studentinfo si on si.stuid = ai.stuid
+        <trim prefix="where" prefixOverrides="and">
+            <if test="brarea != null and brarea != ''">
+                and bi.brarea like concat('%',#{brarea},'%')
+            </if>
+            <if test="brbid != null and brbid != ''">
+                and bi.brbid like concat('%',#{brbid},'%')
+            </if>
+        </trim>
+        group by si.stucollege,si.studept,si.stuclass,ai.stuid
+        order by ai.stuid
+    </select>
+
+    <select id="findFreeRoomListByPage" parameterType="com.usc.lzh.doms.vo.BuildRoomInfoVo" resultType="BuildRoomInfo">
+        select brcode,brarea,brbid,brrid,sex,free from buildroominfo
+        <trim prefix="where" prefixOverrides="and">
+            free > 0
+            <if test="brarea != null and brarea != ''">
+                and brarea like concat('%',#{brarea},'%')
+            </if>
+            <if test="brbid != null and brbid != ''">
+                and brbid like concat('%',#{brbid},'%')
+            </if>
+            <if test="sex != null and sex != ''">
+                and sex = #{sex}
+            </if>
+        </trim>
+        order by brcode
+    </select>
+
+    <select id="findNotAllocateStudentListByPage" parameterType="com.usc.lzh.doms.vo.StudentInfoVo"
+            resultType="StudentInfo">
+        select stuid,stucollege,studept,stuclass,stuname,stusex from studentinfo
+        <trim prefix="where" prefixOverrides="and">
+            stuid NOT in (select stuid from allocationinfo)
+            <if test="stucollege != null and stucollege != ''">
+                and stucollege like concat('%',#{stucollege},'%')
+            </if>
+            <if test="studept != null and studept != ''">
+                and studept like concat('%',#{studept},'%')
+            </if>
+            <if test="stusex != null and stusex != ''">
+                and stusex = #{stusex}
+            </if>
+        </trim>
+        group by stucollege,studept,stuclass,stuid
+    </select>
+
+    <insert id="batchInsertAllocationInfo" parameterType="java.util.List">
+        insert into allocationinfo(brcode,stuid)
+        values
+        <foreach collection="list" item="ai" index="index" separator=",">
+            (#{ai.brcode},#{ai.stuid})
+        </foreach>
+    </insert>
+
+    <update id="batchUpdateBuildRoomInfo" parameterType="java.util.List">
+        <foreach collection="list" separator=";" index="index" item="item">
+            update buildroominfo
+            <set>
+                free = #{item.free},people = volume - free
+            </set>
+            where brcode = #{item.brcode}
+        </foreach>
+    </update>
+
+    <select id="viewAllocateResult" resultType="AllocationInfo">
+        select ai.brcode,bi.brarea,bi.brbid,bi.brrid,ai.stuid,si.stuname,si.stucollege,si.studept,si.stuclass
+        from allocationinfo ai join studentinfo si on ai.stuid = si.stuid
+        join buildroominfo bi on ai.brcode = bi.brcode
+        where ai.stuid in
+        <foreach collection="list" item="item" open="(" close=")" separator=",">
+            #{item.stuid}
+        </foreach>
+    </select>
+</mapper>
